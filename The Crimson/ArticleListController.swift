@@ -136,6 +136,9 @@ class ArticleListController: UITableViewController {
             } catch let error as NSError {
                 print("Could not fetch \(error), \(error.userInfo)")
             }
+        } else if feed.characters.contains(" ") {
+            // This should only be triggered by Home Page and Top Stories
+            return
         } else {
             // Load the RSS feed and splice it by item
             let url = NSURL(string: "http://www.thecrimson.com/feeds/section/" + feed + "/")
@@ -194,7 +197,11 @@ class ArticleListController: UITableViewController {
             // Format the backgroundView
             let loadingFailed = UILabel()
             loadingFailed.numberOfLines = 2
-            loadingFailed.text = "Loading Failed!\nPlease check your connection and try again."
+            if feed == "Saved for Later" {
+                loadingFailed.text = "You have saved no articles.\nPress the star in the top-right corner to save an article."
+            } else {
+                loadingFailed.text = "Loading Failed!\nPlease check your connection and try again."
+            }
             loadingFailed.textAlignment = NSTextAlignment.Center
             self.tableView.backgroundView = loadingFailed
             return 0
@@ -277,7 +284,7 @@ class ArticleListController: UITableViewController {
         // Pull the html of the article from the cache if possible
         // Or else pull it from the web and store it in the cache
         do {
-            let key = articles[indexPath.row].title
+            let key = articles[indexPath.row].link
             if let cachedVersion = cache.objectForKey(key) as? String {
                 // use the cached version
                 destination.html = cachedVersion
@@ -285,27 +292,9 @@ class ArticleListController: UITableViewController {
                 // create it from scratch then store in the cache
                 var html = try String(contentsOfURL: NSURL(string:link)!)
                 
-                // PROCESS THE HTML OF THE WEB PAGE TO LOOK BETTER ON IOS
-                html = html.componentsSeparatedByString("div id=\"article\">")[1].componentsSeparatedByString("</section>")[0]
-                // Extract the details we ant
-                var headline = html.componentsSeparatedByString("<h1 id=\"top\">")[1].componentsSeparatedByString("</h1>")[0]
-                var byline = html.componentsSeparatedByString("<div class=\"article-byline\">")[1].componentsSeparatedByString("<time")[0]
-                var date = html.componentsSeparatedByString("<time")[1].componentsSeparatedByString("</time>")[0].componentsSeparatedByString(">")[1]
-                var text = html.componentsSeparatedByString("<div id=\"text\">")[1].componentsSeparatedByString("<div id=\"subscribe-link\">")[0] + "</div>"
-                // Stylize the details
-                headline = "<h2><font color=#881C16><strong>" + headline + "</font></h2></strong>"
-                byline = "<h4><font color=#999999>" + byline + "</font></h4>"
-                date = "<h4><font color=#881C16>" + date + "</h4></font>"
-                // Resize images
-                text = "<p>" + text.stringByReplacingOccurrencesOfString("<img", withString: "<img width=100%") + "<p>"
-                // Stylize image captions
-                text = text.stringByReplacingOccurrencesOfString("shortcodes-description\">", withString: "shortcodes-description\"><font color=#999999 size=\"2\">")
-                text = text.stringByReplacingOccurrencesOfString("shortcodes-byline\">", withString: "shortcodes-byline\"></font>")
-                html = "<font face=\"Georgia\">" + headline + byline + date + text + "</font>"
-                html = "<div style=\"padding: 1px 10px 5px 10px\">" + html + "</div>"
-                
                 // Cache it
                 destination.html = html
+                //destination.cleanseHtml()
                 cache.setObject(destination.html, forKey: key)
             }
         } catch let error as NSError {

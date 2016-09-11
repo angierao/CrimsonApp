@@ -12,6 +12,7 @@ class SectionListCell: UITableViewCell {
 
     // Properties
     @IBOutlet weak var sectionLabel: UILabel!
+    @IBOutlet weak var icon: UIImageView!
     
     override func awakeFromNib() {
         super.awakeFromNib()

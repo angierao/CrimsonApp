@@ -7,9 +7,10 @@
 //
 
 import UIKit
+//import WebKit
 import CoreData
 
-class ArticleViewController: UIViewController {
+class ArticleViewController: UIViewController, UIWebViewDelegate {
     
     @IBOutlet weak var webView: UIWebView!
     @IBOutlet weak var shareButton: UIBarButtonItem!
@@ -24,6 +25,7 @@ class ArticleViewController: UIViewController {
     var text: String = "Text"
     
     var saved: Bool = false
+    var needsProcessing: Bool = false
     
     var savedArticles = [NSManagedObject]()
     var recentlyViewed = [NSManagedObject]()
@@ -40,13 +42,53 @@ class ArticleViewController: UIViewController {
         }
     }
     
+    func cleanseHtml() {
+        if self.link.rangeOfString("thecrimson.com/article") != nil {
+            var newHtml = html.componentsSeparatedByString("<header>")[0]
+            newHtml += "<div id=\"content\"><section id=\"main\" "
+            newHtml += html.componentsSeparatedByString("<section id=\"main\" ")[1].componentsSeparatedByString("<div id=\"next-previous")[0]
+            newHtml += "<br><br><br><br><div id=\"article\">"
+            newHtml += html.componentsSeparatedByString("<div id=\"article\">")[1].componentsSeparatedByString("</section>")[0]
+            newHtml += "</section></div></body></html>"
+            html = newHtml
+        } else {
+            return
+        }
+    }
+    
+    func webView(webView: UIWebView, shouldStartLoadWithRequest request: NSURLRequest, navigationType: UIWebViewNavigationType) -> Bool {
+        switch navigationType {
+        case .LinkClicked:
+            let storyboard = UIStoryboard(name: "Main", bundle: NSBundle.mainBundle())
+            let destination = storyboard.instantiateViewControllerWithIdentifier("ArticleView") as! ArticleViewController
+            destination.link = String(request.URL)
+            do {
+                destination.html = try String(contentsOfURL: request.URL!)
+            } catch let error as NSError {
+                print("Error: \(error)")
+            }
+            navigationController?.pushViewController(destination, animated: true)
+            return false
+        default:
+            // Handle other navigation types...
+            return true
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        // Told me to
+        webView.delegate = self
+        
         // Make the title blank
         self.navigationItem.title = ""
         
-        // Load the html into the webView
+        // Load the html
+        self.cleanseHtml()
         webView.loadHTMLString(html, baseURL: nil)
+        webView.scrollView.contentInset = UIEdgeInsets(top: -90, left: 0, bottom: 0, right: -20)
+        webView.scrollView.bounces = false
         
         // Load the managedContext
         let appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
@@ -92,7 +134,6 @@ class ArticleViewController: UIViewController {
         }
         do {
             try managedContext.save()
-            
         } catch let error as NSError  {
             print("Could not save \(error), \(error.userInfo)")
         }

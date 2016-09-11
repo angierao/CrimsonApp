@@ -29,7 +29,7 @@ class SectionListController: UITableViewController {
         UIApplication.sharedApplication().statusBarStyle = .LightContent
         
         // Some sections don't have RSS feeds yet - these are the ones that work
-        sections = ["**********Top Stories", "Saved for Later", "News", "Opinion", "**********Features", "**********Magazine", "Sports", "Arts", "**********Multimedia", "**********Flyby", "Recently Viewed"]
+        sections = ["Home Page", "Top Stories", "Saved for Later", "News", "Opinion", "Features", "Magazine", "Sports", "Arts", "Multimedia", "Flyby", "Recently Viewed"]
     }
     
     override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
@@ -47,6 +47,7 @@ class SectionListController: UITableViewController {
         // Fetch the right section and its link
         print(indexPath.row)
         cell.sectionLabel!.text = sections[indexPath.row]
+        cell.icon!.image = UIImage(named: sections[indexPath.row])
         
         return cell
     }
